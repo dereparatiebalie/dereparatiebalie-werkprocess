@@ -1,0 +1,11 @@
+digraph Repair {
+    start -> "Reparateur selecteert reparatie uit Wacht Op Reparatie";
+    "Reparateur selecteert reparatie uit Wacht Op Reparatie" -> "Reparateur voegd foto en beschrijving toe" [label="Reparatie geslaagd"];
+    "Reparateur selecteert reparatie uit Wacht Op Reparatie" -> "Reparateur voegd foto en beschrijving toe" [label="Reparatie mislukt"];
+    "Reparateur voegd foto en beschrijving toe" -> "Reparateur zet status Op Te Halen";
+    "Reparateur zet status Op Te Halen" -> "Reparateur brengt bak naar opslag";
+    "Reparateur brengt bak naar opslag" -> end;
+
+    start [shape=Mdiamond];
+    end [shape=Msquare];
+}

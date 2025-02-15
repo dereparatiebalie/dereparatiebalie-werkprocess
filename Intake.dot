@@ -1,0 +1,17 @@
+digraph Intake {
+  start -> "Klant registreerd reparatie online";
+  "Klant registreerd reparatie online" -> "Klant leverd geregistreerde reeparatie af";
+  start -> "Klant leverd nieuwe reparatie af";
+  "Klant leverd nieuwe reparatie af" -> "Balie registreert klant en reparatie";
+  "Balie registreert klant en reparatie" -> "Balie wijst bak toe en maakt foto";
+  "Klant leverd geregistreerde reeparatie af" -> "Balie wijst bak toe en maakt foto";
+  "Balie wijst bak toe en maakt foto" -> "Balie zet status Wacht Op Reparatie";
+  "Balie wijst bak toe en maakt foto" -> "Balie registreert te bestellen onderdeel";
+  "Balie registreert te bestellen onderdeel" -> "Balie zet status Wacht Op Onderdeel";
+  "Balie zet status Wacht Op Onderdeel" -> "Balie plaats bak in opslag";
+  "Balie zet status Wacht Op Reparatie" -> "Balie plaats bak in opslag";
+  "Balie plaats bak in opslag" -> end;
+  
+  start [shape=Mdiamond];
+  end [shape=Msquare];
+}
