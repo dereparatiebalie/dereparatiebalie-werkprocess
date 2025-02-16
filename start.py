@@ -190,7 +190,7 @@ if __name__ == "__main__":
     generate_all_svgs()
 
     # Start file watcher in a separate thread
-    watcher_thread = Thread(target=start_file_watcher, daemon=False)
+    watcher_thread = Thread(target=start_file_watcher, daemon=True)
     watcher_thread.start()
 
     websocket_thread = Thread(target=start_websocket_server, daemon=True)
