@@ -1,0 +1,19 @@
+digraph StateDiagram {
+    rankdir=TB; // Top to bottom
+    node [shape=oval, style=filled, fillcolor=lightgray];
+    edge [color="#777777"];
+
+    "Gesloten" [fillcolor=lightcoral];
+    "Gesloten, wacht op beheerder" [fillcolor=orange];
+    "Geopend voor reparateurs" [fillcolor=lightgreen];
+    "Geopend, zonder beheerder" [fillcolor=lightcoral];
+    "Geopend" [fillcolor=lightgreen];
+
+    "Gesloten" -> "Gesloten, wacht op beheerder" [label="Reparateur meld zich aan"];
+    "Gesloten" -> "Geopend voor reparateurs" [label="Beheerder meld zich aan"];
+    "Gesloten, wacht op beheerder" -> "Geopend voor reparateurs" [label="Beheerder meld zich aan"];
+    "Geopend voor reparateurs" -> "Gesloten" [label="Beheerder meld zich af"];
+   
+    "Geopend, zonder beheerder" -> "Geopend" [label="Beheerder meld zich aan"];
+
+}

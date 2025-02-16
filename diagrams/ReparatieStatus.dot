@@ -1,0 +1,32 @@
+digraph StateDiagram {
+    rankdir=TB; // Top to bottom
+    node [shape=oval, style=filled, fillcolor=lightgray];
+    edge [color="#777777"];
+
+    // Start & Stop points
+    Start [shape=point];
+    Stop [shape=point, rank=sink];
+
+    "Wacht op reparatie" [fillcolor=lightgreen];
+    "Wacht op onderdelen" [fillcolor=lightcoral];
+    "Wacht op klant" [fillcolor=violet];
+    "In verkoop" [fillcolor=orange];
+    Aangemeld [fillcolor=lightblue];
+
+    { rankdir=LR rank=same "Wacht op onderdelen" "Wacht op reparatie" }
+
+
+    // Main process
+    Start -> Aangemeld;
+    Start -> "Wacht op reparatie" [label="Klant brengt reparatie", labelOverlay="100%", weight=100];
+    Start -> "Wacht op onderdelen";
+    Aangemeld -> "Wacht op reparatie" [label="Klant brengt reparatie"];
+    "Wacht op reparatie" -> "Wacht op onderdelen" [label="Onderdelen nodig na inspectie"];
+    "Wacht op onderdelen" -> "Wacht op reparatie" [label="Onderdelen ontvangen"];
+    "Wacht op reparatie" -> "Wacht op klant" [label="Reparatie geslaagd", weigth=100];
+    "Wacht op reparatie" -> Stop [label="Reparatie mislukt, mag weg"];
+    "Wacht op klant" -> Stop [label="Opgehaald", weight=100];
+    "Wacht op klant" -> "In verkoop" [label="Na 30 dagen"];
+    "In verkoop" -> Stop [label="Verkocht", weight=10];
+    "In verkoop" -> Stop [label="Weggooien na 30 dagen"];    
+}
