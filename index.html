@@ -90,7 +90,19 @@
 
         // Load SVGs initially and refresh every 5 seconds
         loadSVGs();
-        setInterval(loadSVGs, 1000);
+        
+        const socket = new WebSocket("ws://localhost:8765");
+
+        socket.onopen = () => {
+            console.log("Connected to WebSocket server");
+        };
+
+        socket.onmessage = (event) => {
+            console.log("Received update:", event.data);
+            if (event.data === "update") {
+                loadSVGs();
+            }
+        };
     </script>
 </body>
 </html>

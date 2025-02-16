@@ -6,11 +6,14 @@ import subprocess
 import http.server
 import socketserver
 import socket
+import asyncio
+import websockets
 from threading import Thread
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
 PORT=8000
+WEBSOCKET_PORT=8765
 
 class Path:
     def __init__(self):
@@ -22,6 +25,23 @@ class Path:
         self.target_html = os.path.join(self.output_dir, index_html)
         
 path = Path()
+connected_clients = set()
+websocket_loop = None
+
+async def websocket_handler(websocket):
+    """Handles new WebSocket connections from clients"""
+    connected_clients.add(websocket)
+    try:
+        async for _ in websocket:
+            pass  # WebSocket stays open until the client disconnects
+    finally:
+        connected_clients.remove(websocket)
+
+async def notify_clients():
+    """Send an update message to all connected WebSocket clients"""
+    if connected_clients:
+        message = "update"
+        await asyncio.gather(*[ws.send(message) for ws in connected_clients])
 
 def copy_html():
     """Ensure index.html is in site/"""
@@ -55,9 +75,6 @@ def generate_file_list():
 class DotFileHandler(PatternMatchingEventHandler):
     """Watch for changes in .dot files and regenerate .svg files"""
 
-    # def __init__(self):
-        # super().__init__(patterns=["*.dot"])
-
     def process(self, file_path):
         """Convert a .dot file to .svg and update files.json"""
         print("Processing filesystem update")
@@ -70,6 +87,12 @@ class DotFileHandler(PatternMatchingEventHandler):
             try:
                 subprocess.run(["dot", "-Tsvg", file_path, "-o", svg_file], check=True, capture_output=True, text=True)
                 generate_file_list()  # Update JSON list after successful conversion
+                # asyncio.run(notify_clients())
+                # loop = asyncio.get_event_loop()
+                # loop.create_task(notify_clients())
+                if websocket_loop:  # Ensure loop exists
+                    asyncio.run_coroutine_threadsafe(notify_clients(), websocket_loop)
+
             except subprocess.CalledProcessError as e:
                 print(f"\n❌ Error processing {file_path}:")
                 print(e.stderr)
@@ -85,21 +108,13 @@ class DotFileHandler(PatternMatchingEventHandler):
             self.process(event.src_path)
 
 
-class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-    def end_headers(self):
-        """Prevent caching of .svg files"""
-        self.send_header("Cache-Control", "no-store, must-revalidate")
-        self.send_header("Expires", "0")
-        self.send_header("Pragma", "no-cache")
-        super().end_headers()
-
 def start_http_server():
     """Start a simple HTTP server to serve the site/ directory"""
     os.chdir(path.output_dir)
-    handler = NoCacheHTTPRequestHandler
+    handler = http.server.SimpleHTTPRequestHandler
 
     with socketserver.TCPServer(("", PORT), handler, bind_and_activate=False) as httpd:
-        httpd.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # ✅ Allow immediate reuse
+        httpd.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         httpd.server_bind()
         httpd.server_activate()
 
@@ -145,6 +160,26 @@ def start_file_watcher():
 
     observer.join()
 
+def start_websocket_server():
+    """Start the WebSocket server inside a separate thread with its own event loop."""
+    global websocket_loop
+
+    loop = asyncio.new_event_loop()  # ✅ Create a new asyncio loop
+    asyncio.set_event_loop(loop)  # ✅ Set the loop in this thread
+    websocket_loop = loop
+
+    async def run_server():
+        """Runs the WebSocket server inside the event loop."""
+        async with websockets.serve(websocket_handler, "localhost", WEBSOCKET_PORT):
+            print(f"📡 WebSocket server started on ws://localhost:{WEBSOCKET_PORT}")
+            await asyncio.Future()  # Keeps the server running forever
+
+    # ✅ Schedule the WebSocket server inside the event loop
+    loop.run_until_complete(run_server())
+    loop.run_forever()  # ✅ Keep the WebSocket server running
+    loop.close()
+
+
 if __name__ == "__main__":
     # Ensure the output directory exists
     os.makedirs(path.output_dir, exist_ok=True)
@@ -157,6 +192,9 @@ if __name__ == "__main__":
     # Start file watcher in a separate thread
     watcher_thread = Thread(target=start_file_watcher, daemon=False)
     watcher_thread.start()
+
+    websocket_thread = Thread(target=start_websocket_server, daemon=True)
+    websocket_thread.start()
 
     # Start HTTP server
     start_http_server()
